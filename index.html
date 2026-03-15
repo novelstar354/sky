@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Weather</title>
+<link rel="icon" href="https://s.widget-club.com/samples/sZu1ASkFQdMv2pyNSc4076UXlU33/H3rUqUrF0oJqelTLN3B8/8191DA31-68EA-469F-9B04-D9FB0594B68E.jpg?q=70" sizes="16×16" type="image/png" />
+<style>
+body{
+  margin:0;
+  font-family: system-ui;
+  background: linear-gradient(180deg, #3a7bd5, #00d2ff);
+  display:flex;
+  justify-content:center;
+  transition: background 1s ease;
+  overflow: hidden;
+}
+.app{
+  width: 100%;
+  max-width: 380px;
+  min-height: 100vh;
+  color: white;
+  padding: 20px;
+  box-sizing: border-box;
+  z-index: 2;
+  position: relative;
+}
+.current { text-align: center; margin-top: 20px; }
+.city { font-size: 28px; font-weight: 600; }
+.temp { font-size: 70px; font-weight: 200; }
+.desc { font-size: 22px; opacity: 0.9; }
+.card{
+  margin-top: 25px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  border-radius: 20px;
+  padding: 15px;
+}
+.hourly{ display:flex; overflow-x:auto; gap:12px; padding-bottom:10px; }
+.hour{ min-width:70px; text-align:center; background: rgba(255,255,255,0.15); border-radius:12px; padding:10px; }
+.day{ display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid rgba(255,255,255,0.2); }
+.day:last-child{ border:none; }
+.sun{ margin-top:20px; background: rgba(255, 255, 255, 0.15); padding:15px; border-radius:20px; }
+button{ margin-top:15px; width:100%; padding:12px; border:none; border-radius:12px; background:white; font-weight:bold; cursor:pointer; }
+
+/* 夜モード */
+.night { background: linear-gradient(180deg, #111, #000); }
+
+/* 星 */
+.stars {
+  position: fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  pointer-events: none;
+  z-index:1;
+  overflow: hidden;
+}
+.star {
+  position: absolute;
+  background: white;
+  border-radius: 50%;
+  opacity: 0.8;
+  animation: twinkle linear infinite, moveStar linear infinite;
+}
+@keyframes twinkle {
+  0% { opacity: 0.2; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.2; }
+}
+@keyframes moveStar {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(10px); }
+}
+
+/* 流れ星 */
+.meteor {
+  position: absolute;
+  background: linear-gradient(45deg, white, rgba(255,255,255,0));
+  opacity: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+@keyframes meteorAnim {
+  0% { opacity:1; transform: translate(0,0) rotate(var(--deg)); }
+  100% { opacity:0; transform: translate(var(--x), var(--y)) rotate(var(--deg)); }
+}
+
+/* レスポンシブ */
+@media (max-width: 768px) {
+  .city { font-size: 24px; }
+  .temp { font-size: 60px; }
+  .desc { font-size: 18px; }
+  .hour { min-width: 60px; font-size: 12px; }
+  .day { font-size: 14px; }
+  button { font-size: 14px; }
+}
+@media (max-width: 480px) {
+  .city { font-size: 20px; }
+  .temp { font-size: 50px; }
+  .desc { font-size: 16px; }
+  .hour { min-width: 50px; font-size: 12px; }
+  .day { font-size: 12px; }
+  button { font-size: 14px; }
+  .app { padding: 10px; }
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+  <div class="current">
+    <div class="city">現在地</div>
+    <div class="temp" id="temp">--°</div>
+    <div class="desc" id="desc">--</div>
+  </div>
+  <button onclick="loadWeather()">更新</button>
+
+  <div class="card">
+    <h3>時間ごとの天気</h3>
+    <div class="hourly" id="hourly"></div>
+  </div>
+
+  <div class="card">
+    <h3>7日間予報</h3>
+    <div id="daily"></div>
+  </div>
+
+  <div class="sun">
+    <div>🌅 日の出: <span id="sunrise"></span></div>
+    <div>🌇 日の入り: <span id="sunset"></span></div>
+  </div>
+
+  <div class="stars" id="stars"></div>
+  <div id="meteors"></div>
+</div>
+
+<script>
+const weatherCode={0:"☀️",1:"🌤",2:"⛅",3:"☁️",45:"🌫",51:"🌦",61:"🌧",71:"❄️",95:"⛈"};
+
+function loadWeather(){
+  navigator.geolocation.getCurrentPosition(pos=>{
+    let lat=pos.coords.latitude, lon=pos.coords.longitude;
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,weathercode&daily=temperature_2m_max,temperature_2m_min,weathercode,sunrise,sunset&timezone=auto`)
+      .then(r=>r.json())
+      .then(data=>{
+        document.getElementById("temp").textContent=data.current_weather.temperature+"°";
+        document.getElementById("desc").textContent=weatherCode[data.current_weather.weathercode];
+        let sunrise=data.daily.sunrise[0].split("T")[1];
+        let sunset=data.daily.sunset[0].split("T")[1];
+        document.getElementById("sunrise").textContent=sunrise;
+        document.getElementById("sunset").textContent=sunset;
+
+        let currentTime=new Date();
+        let sunsetTime=new Date(`1970-01-01T${sunset}:00Z`);
+        if(currentTime>=sunsetTime){
+          document.body.classList.add('night');
+          createStars();
+          startMeteors();
+        } else {
+          document.body.classList.remove('night');
+          document.getElementById("stars").innerHTML='';
+          document.getElementById("meteors").innerHTML='';
+        }
+
+        let h="";
+        for(let i=0;i<24;i++){
+          let time=data.hourly.time[i].split("T")[1];
+          h+=`<div class="hour"><div>${time}</div><div>${weatherCode[data.hourly.weathercode[i]]}</div><div>${data.hourly.temperature_2m[i]}°</div></div>`;
+        }
+        hourly.innerHTML=h;
+
+        let d="";
+        for(let i=0;i<7;i++){
+          let date=new Date(data.daily.time[i]);
+          let day=["日","月","火","水","木","金","土"][date.getDay()];
+          d+=`<div class="day"><div>${day}</div><div>${weatherCode[data.daily.weathercode[i]]}</div><div>${data.daily.temperature_2m_max[i]}° / ${data.daily.temperature_2m_min[i]}°</div></div>`;
+        }
+        daily.innerHTML=d;
+      });
+  });
+}
+
+loadWeather();
+
+/* 星 */
+function createStars(){
+  const stars=document.getElementById('stars');
+  stars.innerHTML='';
+  for(let i=0;i<150;i++){
+    const s=document.createElement('div');
+    s.classList.add('star');
+    const size=Math.random()*2+1;
+    s.style.width=s.style.height=size+'px';
+    s.style.top=Math.random()*100+'%';
+    s.style.left=Math.random()*100+'%';
+    s.style.animationDuration=(Math.random()*3+2)+'s, '+(Math.random()*40+10)+'s';
+    stars.appendChild(s);
+  }
+}
+
+/* 複数方向流れ星 */
+function startMeteors(){
+  const container=document.getElementById('meteors');
+  function spawn(){
+    const m=document.createElement('div');
+    m.classList.add('meteor');
+    const x=Math.random()*window.innerWidth;
+    const y=Math.random()*window.innerHeight/2;
+    const dx=(Math.random()*400)+200;
+    const dy=(Math.random()*400)+200;
+    const deg=(Math.random()*90)-45;
+    const speed=(Math.random()*0.5)+0.5; // 流れ星の速さをランダム化
+    const length=(Math.random()*100)+50; // 長さランダム
+    m.style.width='2px';
+    m.style.height=length+'px';
+    m.style.top=y+'px';
+    m.style.left=x+'px';
+    m.style.setProperty('--x', dx+'px');
+    m.style.setProperty('--y', dy+'px');
+    m.style.setProperty('--deg', deg+'deg');
+    m.style.animation=`meteorAnim ${speed}s linear forwards`;
+    container.appendChild(m);
+    setTimeout(()=>m.remove(), speed*1000);
+    setTimeout(spawn, Math.random()*5000+2000);
+  }
+  spawn();
+}
+</script>
+</body>
+</html>
