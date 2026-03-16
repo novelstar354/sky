@@ -2,458 +2,254 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>空もよう？</title>
-<link rel="icon" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRDomKNQBdl3DOd2AW9KgS4bA__m9uJjljc0Q&s" sizes="16×16" type="image/png" />
+<title>Weather</title>
+<link rel="icon" href="https://s.widget-club.com/samples/sZu1ASkFQdMv2pyNSc4076UXlU33/H3rUqUrF0oJqelTLN3B8/8191DA31-68EA-469F-9B04-D9FB0594B68E.jpg?q=70" sizes="16×16" type="image/png" />
 <style>
-
 body{
-margin:0;
-font-family:Roboto,Arial;
-background:#111;
-display:flex;
-justify-content:center;
+  margin:0;
+  font-family: system-ui;
+  background: linear-gradient(180deg, #3a7bd5, #00d2ff);
+  display:flex;
+  justify-content:center;
+  transition: background 1s ease;
+  /*overflow: hidden;*/
+    overflow:auto;
+    user-select: none;
+  -webkit-user-select: none;
 }
-
-.phone{
-width:380px;
-min-height:100vh;
-background:#202124;
-color:white;
-padding:15px;
-box-sizing:border-box;
+.app{
+  width: 100%;
+  max-width: 380px;
+  min-height: 100vh;
+  color: white;
+  padding: 20px;
+  box-sizing: border-box;
+  z-index: 2;
+  position: relative;
 }
-
-.city{
-font-size:28px;
-font-weight:500;
-}
-
-.temp{
-font-size:72px;
-font-weight:300;
-}
-
-.desc{
-opacity:0.8;
-margin-bottom:15px;
-}
-
+.current { text-align: center; margin-top: 20px; }
+.city { font-size: 28px; font-weight: 600; }
+.temp { font-size: 70px; font-weight: 200; }
+.desc { font-size: 22px; opacity: 0.9; }
 .card{
-background:#303134;
-border-radius:20px;
-padding:15px;
-margin-bottom:15px;
+  margin-top: 25px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  border-radius: 20px;
+  padding: 15px;
+}
+.hourly{ display:flex; overflow-x:auto; gap:12px; padding-bottom:10px; }
+.hour{ min-width:70px; text-align:center; background: rgba(255,255,255,0.15); border-radius:12px; padding:10px; }
+.day{ display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid rgba(255,255,255,0.2); }
+.day:last-child{ border:none; }
+.sun{ margin-top:20px; background: rgba(255, 255, 255, 0.15); padding:15px; border-radius:20px; }
+button{ margin-top:15px; width:100%; padding:12px; border:none; border-radius:12px; background:white; font-weight:bold; cursor:pointer; }
+
+/* 夜モード */
+.night { background: linear-gradient(180deg, #111, #000); }
+
+/* 星 */
+.stars {
+  position: fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  pointer-events: none;
+  z-index:1;
+  overflow: hidden;
+}
+.star {
+  position: absolute;
+  background: white;
+  border-radius: 50%;
+  opacity: 0.8;
+  animation: twinkle linear infinite, moveStar linear infinite;
+}
+@keyframes twinkle {
+  0% { opacity: 0.2; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.2; }
+}
+@keyframes moveStar {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(10px); }
 }
 
-.row{
-display:flex;
-justify-content:space-between;
-align-items:center;
+/* 流れ星 */
+.meteor {
+  position: absolute;
+  background: linear-gradient(45deg, white, rgba(255,255,255,0));
+  opacity: 0;
+  pointer-events: none;
+  z-index: 3;
 }
 
-.hourly{
-display:flex;
-overflow-x:auto;
-gap:20px;
+@keyframes meteorAnim {
+  0% { opacity:1; transform: translate(0,0) rotate(var(--deg)); }
+  100% { opacity:0; transform: translate(var(--x), var(--y)) rotate(var(--deg)); }
 }
 
-.hour{
-text-align:center;
-min-width:50px;
+/* レスポンシブ */
+@media (max-width: 768px) {
+  .city { font-size: 24px; }
+  .temp { font-size: 60px; }
+  .desc { font-size: 18px; }
+  .hour { min-width: 60px; font-size: 12px; }
+  .day { font-size: 14px; }
+  button { font-size: 14px; }
 }
-
-.day{
-display:flex;
-justify-content:space-between;
-margin:6px 0;
-}
-
-.grid{
-display:grid;
-grid-template-columns:1fr 1fr 1fr;
-gap:10px;
-}
-
-.grid div{
-background:#3c4043;
-padding:10px;
-border-radius:12px;
-text-align:center;
-font-size:13px;
-}
-
-canvas{
-width:100%;
-height:120px;
-}
-
-button{
-background:#4285f4;
-border:none;
-padding:8px 14px;
-border-radius:10px;
-color:white;
-cursor:pointer;
-}
-.hourly::-webkit-scrollbar{
-height:4px;
-}
-
-.hourly::-webkit-scrollbar-thumb{
-background:#555;
-border-radius:10px;
+@media (max-width: 480px) {
+  .city { font-size: 20px; }
+  .temp { font-size: 50px; }
+  .desc { font-size: 16px; }
+  .hour { min-width: 50px; font-size: 12px; }
+  .day { font-size: 12px; }
+  button { font-size: 14px; }
+  .app { padding: 10px; }
 }
 </style>
 </head>
+
 <body>
+<div class="app">
+  <div class="current">
+    <div class="city">現在地</div>
+    <div class="temp" id="temp">--°</div>
+    <div class="desc" id="desc">--</div>
+  </div>
+  <button onclick="loadWeather()">更新</button>
 
-<div class="phone">
+  <div class="card">
+    <h3>時間ごとの天気</h3>
+    <div class="hourly" id="hourly"></div>
+  </div>
 
-<div class="city" id="city"></div>
+  <div class="card">
+    <h3>7日間予報</h3>
+    <div id="daily"></div>
+  </div>
 
-<div class="temp" id="temp"></div>
+  <div class="sun">
+    <div>🌅 日の出: <span id="sunrise"></span></div>
+    <div>🌇 日の入り: <span id="sunset"></span></div>
+  </div>
 
-<div class="desc" id="desc"></div>
-
-<div style="margin-bottom:10px">
-
-<button onclick="changeCity()">都市変更</button>
-
-<button onclick="updateWeather()">天気更新</button>
-
-</div>
-
-<div class="card">
-<h3>時間ごとの天気</h3>
-<div class="hourly" id="hourly"></div>
-</div>
-
-<div class="card">
-<h3>7日間予報</h3>
-<div id="week"></div>
-</div>
-<div class="card">
-<h3>気象データ</h3>
-<div class="grid" id="details2"></div>
-</div>
-<div class="card">
-<h3>太陽</h3>
-<canvas id="sunGraph"></canvas>
-<div id="sunTimes"></div>
-</div>
-
-<div class="card">
-<h3>生活のヒント</h3>
-<div class="grid" id="details"></div>
-</div>
-
+  <div class="stars" id="stars"></div>
+  <div id="meteors"></div>
 </div>
 
 <script>
+const weatherCode={0:"☀️",1:"🌤",2:"⛅",3:"☁️",45:"🌫",51:"🌦",61:"🌧",71:"❄️",95:"⛈"};
 
-const cities=["東京","大阪","札幌","名古屋","京都","福岡","那覇","ニューヨーク","ロンドン","パリ","ソウル","ポートビラ","カイロ","シーラーズ","チャータズタワーズ","ハイデラバード","チェリャビンスク","ベロオリゾンチ",];
+function loadWeather(){
+  navigator.geolocation.getCurrentPosition(pos=>{
+    let lat=pos.coords.latitude, lon=pos.coords.longitude;
 
-const weathers=[
-{icon:"☀️",name:"晴れ"},
-{icon:"☁️",name:"くもり"},
-{icon:"🌧️",name:"雨"},
-{icon:"❄️",name:"雪"},
-{icon:"⛈️",name:"雷"},
-];
-let currentCityIndex = 0;
-let temp = 0;
+    // 天気データ取得
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,weathercode&daily=temperature_2m_max,temperature_2m_min,weathercode,sunrise,sunset&timezone=auto`)
+      .then(r=>r.json())
+      .then(data=>{
+        // 温度・天気
+        document.getElementById("temp").textContent=data.current_weather.temperature+"°";
+        document.getElementById("desc").textContent=weatherCode[data.current_weather.weathercode];
 
-function changeCity(){
+        // 日の出・日の入り
+        let sunrise=data.daily.sunrise[0].split("T")[1];
+        let sunset=data.daily.sunset[0].split("T")[1];
+        document.getElementById("sunrise").textContent=sunrise;
+        document.getElementById("sunset").textContent=sunset;
 
-currentCityIndex++;
+        // 昼夜切り替え
+        let currentTime=new Date();
+        let [sh, sm] = sunrise.split(":").map(Number);
+        let [eh, em] = sunset.split(":").map(Number);
+        let sunriseTime=new Date();
+        sunriseTime.setHours(sh, sm, 0, 0);
+        let sunsetTime=new Date();
+        sunsetTime.setHours(eh, em, 0, 0);
 
-if(currentCityIndex >= cities.length){
-currentCityIndex = 0;
+        if(currentTime >= sunsetTime || currentTime <= sunriseTime){
+          document.body.classList.add('night');
+          createStars();
+          startMeteors();
+        } else {
+          document.body.classList.remove('night');
+          document.getElementById("stars").innerHTML='';
+          document.getElementById("meteors").innerHTML='';
+        }
+
+        // 時間ごとの天気
+        let h="";
+        for(let i=0;i<24;i++){
+          let time=data.hourly.time[i].split("T")[1];
+          h+=`<div class="hour"><div>${time}</div><div>${weatherCode[data.hourly.weathercode[i]]}</div><div>${data.hourly.temperature_2m[i]}°</div></div>`;
+        }
+        hourly.innerHTML=h;
+
+        // 7日間予報
+        let d="";
+        for(let i=0;i<7;i++){
+          let date=new Date(data.daily.time[i]);
+          let day=["日","月","火","水","木","金","土"][date.getDay()];
+          d+=`<div class="day"><div>${day}</div><div>${weatherCode[data.daily.weathercode[i]]}</div><div>${data.daily.temperature_2m_max[i]}° / ${data.daily.temperature_2m_min[i]}°</div></div>`;
+        }
+        daily.innerHTML=d;
+      });
+
+    // 逆ジオコーディングで都市名取得
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
+      .then(r=>r.json())
+      .then(loc=>{
+        const city = loc.address.city || loc.address.town || loc.address.village || loc.address.county || "現在地";
+        document.querySelector(".city").textContent = city;
+      });
+  });
 }
 
-updateWeather();
+loadWeather();
 
-}
-function updateWeather(){
-
-let city = cities[currentCityIndex];
-
-let w = weathers[Math.floor(Math.random()*weathers.length)];
-
-//let temp = Math.floor(Math.random()*35)-5;
-temp = Math.floor(Math.random()*35)-5;
-
-document.getElementById("city").innerText = city;
-document.getElementById("temp").innerText = temp + "°";
-document.getElementById("desc").innerText = w.icon + " " + w.name;
-
-makeHourly();
-makeWeek();
-makeDetails();
-makeDetails2();
-drawSun();
-
+/* 星 */
+function createStars(){
+  const stars=document.getElementById('stars');
+  stars.innerHTML='';
+  for(let i=0;i<150;i++){
+    const s=document.createElement('div');
+    s.classList.add('star');
+    const size=Math.random()*2+1;
+    s.style.width=s.style.height=size+'px';
+    s.style.top=Math.random()*100+'%';
+    s.style.left=Math.random()*100+'%';
+    s.style.animationDuration=(Math.random()*3+2)+'s, '+(Math.random()*40+10)+'s';
+    stars.appendChild(s);
+  }
 }
 
-function makeHourly(){
-
-let div=document.getElementById("hourly");
-div.innerHTML="";
-
-for(let i=0;i<12;i++){
-
-let w=weathers[Math.floor(Math.random()*weathers.length)];
-
-let d=document.createElement("div");
-d.className="hour";
-let now = new Date().getHours();
-d.innerHTML=
-"<div>"+((now+i*2)%24)+"時</div>"+
-//"<div>"+(i*2)+"時</div>"+
-"<div>"+w.icon+"</div>"+
-"<div>"+Math.floor(Math.random()*30)+"°</div>";
-
-div.appendChild(d);
-
+/* 複数方向流れ星 */
+function startMeteors(){
+  const container=document.getElementById('meteors');
+  function spawn(){
+    const m=document.createElement('div');
+    m.classList.add('meteor');
+    const x=Math.random()*window.innerWidth;
+    const y=Math.random()*window.innerHeight/2;
+    const dx=(Math.random()*400)+200;
+    const dy=(Math.random()*400)+200;
+    const deg=(Math.random()*90)-45;
+    const speed=(Math.random()*0.5)+0.5; // 流れ星の速さをランダム化
+    const length=(Math.random()*100)+50; // 長さランダム
+    m.style.width='2px';
+    m.style.height=length+'px';
+    m.style.top=y+'px';
+    m.style.left=x+'px';
+    m.style.setProperty('--x', dx+'px');
+    m.style.setProperty('--y', dy+'px');
+    m.style.setProperty('--deg', deg+'deg');
+    m.style.animation=`meteorAnim ${speed}s linear forwards`;
+    container.appendChild(m);
+    setTimeout(()=>m.remove(), speed*1000);
+    setTimeout(spawn, Math.random()*5000+2000);
+  }
+  spawn();
 }
-
-}
-
-function makeWeek(){
-
-let div=document.getElementById("week");
-div.innerHTML="";
-
-const days=["日","月","火","水","木","金","土"];
-let today=new Date().getDay();
-
-for(let i=0;i<7;i++){
-
-let w=weathers[Math.floor(Math.random()*weathers.length)];
-
-let day=days[(today+i)%7];
-
-let d=document.createElement("div");
-d.className="day";
-
-d.innerHTML=
-"<span>"+day+"</span>"+
-"<span>"+w.icon+"</span>"+
-"<span>"+Math.floor(Math.random()*30)+"°</span>";
-
-div.appendChild(d);
-
-}
-
-}
-const pollen = [
-    "ほとんどなし",
-    "少ない",
-    "普通",
-    "少し多い",
-    "多い",
-    "かなり多い",
-    "非常に多い"
-];
-const mosquito = [
-    "ほとんどなし",
-    "少なめ",
-    "普通",
-    "少し多め",
-    "多め",
-    "かなり多め",
-    "非常に多い"
-];
-const wash = [ 
-    "に不向き", 
-    "不要", 
-    "に好適", 
-    "に非常に適しています", 
-    "に最適"
-];
-const trip = [
-    "好適",
-    "最適",
-    "不向き",
-    "まあまあ適している",
-];
-const out = [
-    "屋外の運動に好適",
-    "屋外の運動に非常に適しています",
-    "屋外の運動に極めて適している",
-    "屋内の運動に好適",
-    "屋内の運動に非常に適しています",
-    "屋内の運動に極めて適している",
-];
-const road = [
-    "道路条件良好",
-    "スリップ注意",
-    "運転に極めて適している",
-];
-const index = [
-    "日焼け対策が適度に必要",
-    "UVインデックス高め",
-    "UVインデックス低め",
-    "UVインデックス中程度",
-];
-const water = [
-    "保湿化粧品の使用増量",
-    "保湿化粧品の使用",
-    "しっかり保湿",
-    "オイルコントロール化粧品の使用",
-];
-function makeDetails(){
-
-let div=document.getElementById("details");
-
-div.innerHTML="";
-let randomPollen = Math.floor(Math.random()* 7);
-let currentPollen = pollen[randomPollen];
-let randomMosquito = Math.floor(Math.random()* 7);
-let currentMosquito = mosquito[randomMosquito];
-let randomWash = Math.floor(Math.random()* 5);
-let currentWash = wash[randomWash];
-let randomTrip = Math.floor(Math.random()* 4);
-let currentTrip = trip[randomTrip];
-let randomOut = Math.floor(Math.random()* 6);
-let currentOut = out[randomOut];
-let randomRoad = Math.floor(Math.random()* 3);
-let currentRoad = road[randomRoad];
-let randomIndex = Math.floor(Math.random()* 4);
-let currentIndex = index[randomIndex];
-let randomWater = Math.floor(Math.random()* 4);
-let currentWater = water[randomWater];
-const list=[
-    `花粉 ${currentPollen}`,
-    `${currentIndex}`,
-    `${currentWater}`,
-    `洗車${currentWash }`,
-    `${currentOut}`,
-    `${currentRoad}`,
-    `旅行に${currentTrip}`,
-    `蚊の発生 ${currentMosquito}`,
-
-];
-
-list.forEach(t=>{
-let d=document.createElement("div");
-d.innerText=t;
-div.appendChild(d);
-});
-
-}
-const UV = [
-    "0 微弱",
-    "1 微弱",
-    "2 弱",
-    "3 弱",
-    "4 弱",
-    "5 中",
-    "6 中",
-    "7 中",
-    "8 強",
-    "9 強",
-    "10 極強",
-    "11 極強",
-];
-const direction =[
-    "北",
-    "北北東",
-    "北東",
-    "東北東",
-    "東",
-    "東南東",
-    "南東",
-    "南南東",
-    "南",
-    "南南西",
-    "南西",
-    "西南西",
-    "西",
-    "西北西",
-    "北西",
-    "北北西",
-    
-]
-function makeDetails2(){
-
-let div=document.getElementById("details2");
-
-div.innerHTML="";
-
-let randomMosquito = Math.floor(Math.random()* 7);
-let currentMosquito = mosquito[randomMosquito];
-let randomUV = Math.floor(Math.random()*11);
-let currentUV = UV[randomUV];
-let randomDirection = Math.floor(Math.random()* 16);
-let currentDirection = direction[randomDirection];
-let randomWindow = Math.floor(Math.random()* 20);
-//let feels = temp + Math.floor(Math.random()*6-3);
-let randomFeels = Math.floor(Math.random()*6 -3);
-let feels = temp + randomFeels;
-const list=[
-    `UV ${currentUV}`,
-    //"体感温度 "+Math.floor(Math.random()*30)+"°",
-    `体感温度${feels}℃`,
-    "湿度 "+Math.floor(Math.random()*100)+"%",
-    `${currentDirection}の風 ${randomWindow}m/s`,
-    "気圧 "+(990+Math.floor(Math.random()*40))+"hPa",
-    "視界 "+(Math.random()*10).toFixed(1)+"km",
-];
-
-list.forEach(t=>{
-let d=document.createElement("div");
-d.innerText=t;
-div.appendChild(d);
-});
-
-}
-function drawSun(){
-
-let canvas=document.getElementById("sunGraph");
-let ctx=canvas.getContext("2d");
-
-canvas.width=340;
-canvas.height=120;
-
-ctx.clearRect(0,0,340,120);
-
-ctx.strokeStyle="white";
-
-ctx.beginPath();
-
-for(let x=0;x<=340;x++){
-
-let t=x/340;
-let y=100-Math.sin(t*Math.PI)*80;
-
-if(x===0) ctx.moveTo(x,y);
-else ctx.lineTo(x,y);
-
-}
-
-ctx.stroke();
-
-//let sunX=Math.random()*340;
-let now = new Date().getHours();
-let sunX = (now/24)*340;
-
-
-let sunY=100-Math.sin((sunX/340)*Math.PI)*80;
-
-ctx.beginPath();
-ctx.arc(sunX,sunY,6,0,Math.PI*2);
-ctx.fillStyle="yellow";
-ctx.fill();
-
-document.getElementById("sunTimes").innerText=
-"日の出 "+(5+Math.floor(Math.random()*2))+":00  日の入り "+(17+Math.floor(Math.random()*2))+":00";
-
-}
-
-updateWeather();
-
 </script>
-
 </body>
 </html>
